@@ -1,0 +1,27 @@
+name:                minbpe-hs
+version:             0.1.0.0
+synopsis:            Byte-level byte pair encoding (BPE)
+description:         minbpe-hs is a port of Andrej Karpathy's concise byte-level byte pair encoding (BPE) implementation, minbpe, to Haskell.
+homepage:            https://github.com/BobMcDear/minbpe-hs
+license:             MIT
+license-file:        LICENSE
+author:              Borna Ahmadzadeh
+maintainer:          borna.ahz@gmail.com
+category:            Text
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     BPE.Base, BPE.Basic, BPE.Regex
+  other-extensions:    OverloadedStrings
+  build-depends:       base >=4.19 && <4.20, bytestring >=0.12 && <0.13, utf8-string >=1.0 && <1.1, insert-ordered-containers >=0.2 && <0.3, hashable >=1.4 && <1.5, filepath >=1.2 && <1.5, regex-pcre-builtin >=0.95 && <0.96
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+test-suite test-minbpe-hs
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  build-depends:       base >=4.19 && <4.20, bytestring >=0.12 && <0.13, utf8-string >=1.0 && <1.1, insert-ordered-containers >=0.2 && <0.3, directory, HUnit >=1.6.2.0, minbpe-hs
+  hs-source-dirs:      tests
+  default-language:    Haskell2010
