@@ -1,13 +1,38 @@
+-- Base package for MinBPE.
+{-
+Copyright (c) 2024 Borna Ahmadzadeh
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-}
+
 module BPE.Base
     ( Id
     , Seq
     , Pair
     , Merges
     , Vocab
-    , textToSeq
     , maxByVal
     , invMap
     , inf
+    , initSeq256
+    , initVocab256
     , pairCount
     , mergePair
     , saveMergesAndVocab
@@ -33,10 +58,6 @@ type Seq = [Id]
 type Pair = (Id, Id)
 type Merges = InsOrdHashMap Pair Id
 type Vocab = InsOrdHashMap Id BS.ByteString
-
--- Converts a text to a list of integral byte values
-textToSeq :: BS.ByteString -> Seq
-textToSeq = map fromIntegral . BS.unpack
 
 -- Finds the key in an ordered map with the maximum value
 maxByVal :: (Eq k, Hashable k, Ord v) => InsOrdHashMap k v -> k
@@ -92,10 +113,18 @@ saveMergesAndVocab path merges vocab = do
     writeFile (addExtension path "merges") (show $ Map.toList merges)
     writeFile (addExtension path "vocab") (prettifyVocab merges vocab)
 
+-- An initial vocabulary: the initial 256 characters.
+initVocab256 :: Vocab
+initVocab256 = Map.fromList [(id, BS.pack [fromIntegral id :: Word8]) | id <- [0..255]]
+
+-- Converts a text to a list of integral byte values, coresponding to initVocab256.
+initSeq256 :: BS.ByteString -> Seq
+initSeq256 text = fromIntegral <$> BS.unpack text
+
 -- Builds vocabulary given merges
-mergesToVocab :: Merges -> Vocab
-mergesToVocab = Map.foldlWithKey' updateVocab initVocab
-    where initVocab = Map.fromList [(id, BS.pack [fromIntegral id :: Word8]) | id <- [0..255]]
+mergesToVocab :: Merges -> Vocab -> Vocab
+mergesToVocab merges initVocab = Map.foldlWithKey' updateVocab initVocab merges
+    where
           getPair vocab id1 id2 = BS.concat $ map fromJust [Map.lookup id1 vocab, Map.lookup id2 vocab]
           updateVocab vocab (id1, id2) id = Map.insert id (getPair vocab id1 id2) vocab
 
@@ -103,4 +132,4 @@ mergesToVocab = Map.foldlWithKey' updateVocab initVocab
 loadMergesAndVocab :: FilePath -> IO (Merges, Vocab)
 loadMergesAndVocab path = do
     merges <- fmap (Map.fromList . read) (readFile path)
-    return (merges, mergesToVocab merges)
+    return (merges, mergesToVocab merges initVocab256)
